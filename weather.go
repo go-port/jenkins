@@ -13,6 +13,26 @@ import (
 	"time"
 )
 
+func main() {
+	flag.Parse()
+	if *to == "" {
+		fmt.Println("请传入收件人邮箱(to)")
+		return
+	}
+	// 字符串分割, 使用字符分割出to
+	tos := strings.Split(*to, ";")
+	table, err := GetWeather()
+	if err != nil {
+		fmt.Println("获取天气失败，", err)
+		return
+	}
+	err = SendGoMail(tos, "天气预报", table, nil)
+	if err != nil {
+		fmt.Println("邮件发送失败，", err)
+		return
+	}
+}
+
 // GetCity 获取当前网络对应的城市
 func GetCity() (string, error) {
 	response, err := http.Get("https://restapi.amap.com/v3/ip?key=3279da073706b4846e9e90abd7523c0a")
@@ -231,24 +251,4 @@ func SendGoMail(mailAddress []string, subject string, body string, attaches []st
 	// 发送邮件
 	err := d.DialAndSend(m)
 	return err
-}
-
-func main() {
-	flag.Parse()
-	if *to == "" {
-		fmt.Println("请传入收件人邮箱(to)")
-		return
-	}
-	// 字符串分割, 使用字符分割出to
-	tos := strings.Split(*to, ";")
-	table, err := GetWeather()
-	if err != nil {
-		fmt.Println("获取天气失败，", err)
-		return
-	}
-	err = SendGoMail(tos, "天气预报", table, nil)
-	if err != nil {
-		fmt.Println("邮件发送失败，", err)
-		return
-	}
 }
