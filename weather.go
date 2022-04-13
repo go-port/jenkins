@@ -177,9 +177,9 @@ func GetWeather() (string, error) {
 	table := `<table>`
 	for k, item := range rsp.Data {
 		if k == 0 {
-			table += fmt.Sprintf("<tr>%v%v</td>%v%v</td>%v%v℃</td>%v%v</td></tr>\n", TD, now.Format("15:04:05"), TD, city, TD, item.Tem, TD, item.Wea)
+			table += fmt.Sprintf("<tr>%v%v</td>%v%v</td>%v%v℃</td>%v%v</td></tr>\n", TD, now.Format("15:04"), TD, city, TD, item.Tem, TD, item.Wea)
 			table += fmt.Sprintf("<tr>%v%v</td>%v%v</td>%v%v~%v℃</td>%v%v</td></tr>\n", TD, item.Date[5:], TD, item.Week, TD, item.Tem2, item.Tem1, TD, item.Wea)
-			fmt.Printf("%v	%v	%v℃	%v\n", now.Format("15:04:05"), city, item.Tem, item.Wea)
+			fmt.Printf("%v	%v	%v℃	%v\n", now.Format("15:04"), city, item.Tem, item.Wea)
 			fmt.Printf("%v	%v	%v~%v℃	%v\n", item.Date[5:], item.Week, item.Tem2, item.Tem1, item.Wea)
 			fmt.Printf("--------------------------------\n")
 			for _, hour := range item.Hours {
