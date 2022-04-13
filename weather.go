@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"gopkg.in/gomail.v2"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -115,6 +118,11 @@ type RspGetWeather struct {
 	} `json:"aqi"`
 }
 
+const (
+	TD  = `<td style="padding:6px 10px 6px 10px">`
+	TD2 = `<td style="padding:2px 10px 2px 10px">`
+)
+
 // GetWeather 获取天气信息
 func GetWeather() (string, error) {
 	city, err := GetCity()
@@ -136,28 +144,37 @@ func GetWeather() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rsp := RspGetWeather{}
-	err = json.Unmarshal(data, &rsp)
+	rsp := &RspGetWeather{}
+	err = json.Unmarshal(data, rsp)
 	if err != nil {
 		return "", err
 	}
 	now := time.Now()
+	table := `<table>`
 	for k, item := range rsp.Data {
 		if k == 0 {
-			fmt.Printf("%v %v %v℃\n", now.Format("15:04:05"), city, item.Tem)
-			fmt.Printf("%v	%v	%v℃	%v℃	%v\n", item.Date[5:], item.Week, item.Tem2, item.Tem1, item.Wea)
+			table += fmt.Sprintf("<tr>%v%v</td>%v%v</td>%v%v℃</td>%v%v</td></tr>\n", TD, now.Format("15:04:05"), TD, city, TD, item.Tem, TD, item.Wea)
+			table += fmt.Sprintf("<tr>%v%v</td>%v%v</td>%v%v~%v℃</td>%v%v</td></tr>\n", TD, item.Date[5:], TD, item.Week, TD, item.Tem2, item.Tem1, TD, item.Wea)
+			fmt.Printf("%v	%v	%v℃	%v\n", now.Format("15:04:05"), city, item.Tem, item.Wea)
+			fmt.Printf("%v	%v	%v~%v℃	%v\n", item.Date[5:], item.Week, item.Tem2, item.Tem1, item.Wea)
+			fmt.Printf("--------------------------------\n")
 			for _, hour := range item.Hours {
 				if ShowHour(hour.Hours) {
-					fmt.Printf("%v	%v℃	%v	%v	%v\n", hour.Hours, hour.Tem, hour.Wea, hour.Win, hour.WinSpeed)
+					table += fmt.Sprintf("<tr>%v%v</td>%v%v℃</td>%v%v</td>%v%v%v</td></tr>\n", TD2, hour.Hours, TD2, hour.Tem, TD2, hour.Wea, TD2, hour.Win, hour.WinSpeed)
+					fmt.Printf("%v	%v℃	%v	%v%v\n", hour.Hours, hour.Tem, hour.Wea, hour.Win, hour.WinSpeed)
 				}
 			}
+			fmt.Printf("--------------------------------\n")
 		} else {
-			fmt.Printf("%v	%v	%v℃	%v℃	%v\n", item.Date[5:], item.Week, item.Tem2, item.Tem1, item.Wea)
+			table += fmt.Sprintf("<tr>%v%v</td>%v%v</td>%v%v~%v℃</td>%v%v</td></tr>\n", TD, item.Date[5:], TD, item.Week, TD, item.Tem2, item.Tem1, TD, item.Wea)
+			fmt.Printf("%v	%v	%v~%v℃	%v\n", item.Date[5:], item.Week, item.Tem2, item.Tem1, item.Wea)
 		}
 	}
-	return rsp.City, nil
+	table += `</table>`
+	return table, nil
 }
 
+// ShowHour 展示当前时间以后的预报
 func ShowHour(hour string) bool {
 	comHour := 0
 	nowHour := time.Now().Hour()
@@ -174,6 +191,64 @@ func ShowHour(hour string) bool {
 	return false
 }
 
+const (
+	HOST = "smtp.163.com"        // 邮件服务器地址
+	PORT = 25                    // 端口
+	USER = "zg154220830@163.com" // 发送邮件用户账号
+	PWD  = "BKBGETSCDNNQTIAF"    // 授权密码
+)
+
+var to = flag.String("to", "", "to")
+
+/*
+SendGoMail 使用gomail发送邮件
+@param []string mailAddress 收件人邮箱
+@param string subject 邮件主题
+@param string body 邮件内容
+@param string attaches 附件内容
+@return error
+*/
+func SendGoMail(mailAddress []string, subject string, body string, attaches []string) error {
+	m := gomail.NewMessage()
+	nickname := "The Weather Forecast"
+	m.SetHeader("From", nickname+"<"+USER+">")
+	// 发送给多个用户
+	m.SetHeader("To", mailAddress...)
+	// 设置邮件主题
+	m.SetHeader("Subject", subject)
+	// 设置邮件正文
+	m.SetBody("text/html", body)
+	for _, file := range attaches {
+		_, err := os.Stat(file)
+		if err != nil {
+			fmt.Println("Error:", file, "does not exist")
+		} else {
+			fmt.Println("uploading", file, "...")
+			m.Attach(file)
+		}
+	}
+	d := gomail.NewDialer(HOST, PORT, USER, PWD)
+	// 发送邮件
+	err := d.DialAndSend(m)
+	return err
+}
+
 func main() {
-	_, _ = GetWeather()
+	flag.Parse()
+	if *to == "" {
+		fmt.Println("请传入收件人邮箱(to)")
+		return
+	}
+	// 字符串分割, 使用字符分割出to
+	tos := strings.Split(*to, ";")
+	table, err := GetWeather()
+	if err != nil {
+		fmt.Println("获取天气失败，", err)
+		return
+	}
+	err = SendGoMail(tos, "天气预报", table, nil)
+	if err != nil {
+		fmt.Println("邮件发送失败，", err)
+		return
+	}
 }
