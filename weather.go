@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+func init() {
+	time.FixedZone("CST", 8*3600) // 东八
+}
+
 func main() {
 	flag.Parse()
 	if *to == "" {
@@ -196,9 +200,8 @@ func GetWeather() (string, error) {
 
 // ShowHour 展示当前时间以后的预报
 func ShowHour(hour string) bool {
-	loc, _ := time.LoadLocation("Asia/Shanghai")
 	comHour := 0
-	nowHour := time.Now().In(loc).Hour()
+	nowHour := time.Now().Hour()
 	list := strings.Split(hour[:2], "")
 	num, _ := strconv.Atoi(list[0])
 	if num == 0 {
