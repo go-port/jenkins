@@ -1,66 +1,14 @@
-package main
+package util
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
-	"gopkg.in/gomail.v2"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 )
-
-var to = flag.String("to", "", "to")
-
-func main() {
-	// 解析命令行中的参数
-	flag.Parse()
-	// 设置时区为东八
-	time.Local = time.FixedZone("CST", 8*3600)
-	if *to == "" {
-		fmt.Println("请传入收件人邮箱(to)")
-		return
-	}
-	// 字符串分割, 使用字符分割出to
-	tos := strings.Split(*to, ";")
-	table, err := GetWeather()
-	if err != nil {
-		fmt.Println("获取天气失败，", err)
-		return
-	}
-	err = SendGoMail(tos, "天气预报", table, nil)
-	if err != nil {
-		fmt.Println("邮件发送失败，", err)
-		return
-	}
-}
-
-// GetCity 获取当前网络对应的城市
-func GetCity() (string, error) {
-	response, err := http.Get("https://restapi.amap.com/v3/ip?key=3279da073706b4846e9e90abd7523c0a")
-	if err != nil {
-		return "", err
-	}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return "", err
-	}
-	rsp := struct {
-		City string `json:"city"`
-	}{}
-	err = json.Unmarshal(data, &rsp)
-	if err != nil {
-		return "", err
-	}
-	rsp.City = strings.ReplaceAll(rsp.City, "市", "")
-	if !strings.Contains(rsp.City, "新区") {
-		rsp.City = strings.ReplaceAll(rsp.City, "区", "")
-	}
-	return rsp.City, nil
-}
 
 type RspGetWeather struct {
 	Cityid     string `json:"cityid"`
@@ -155,10 +103,10 @@ func GetWeather() (string, error) {
 		return "", err
 	}
 	url := "https://www.tianqiapi.com/api?appid=24242169&appsecret=fUgcxMb2&version=v9&unescape=1&city=" + city
-	fmt.Println("查询天气：", url)
+	println("查询天气：", url)
 	defer func() {
 		if err != nil {
-			fmt.Println("查询天气失败：", err)
+			println("查询天气失败：", err)
 		}
 	}()
 	response, err := http.Get(url)
@@ -214,44 +162,4 @@ func ShowHour(hour string) bool {
 		return true
 	}
 	return false
-}
-
-const (
-	HOST = "smtp.163.com"        // 邮件服务器地址
-	PORT = 25                    // 端口
-	USER = "zg154220830@163.com" // 发送邮件用户账号
-	PWD  = "BKBGETSCDNNQTIAF"    // 授权密码
-)
-
-/*
-SendGoMail 使用gomail发送邮件
-@param []string mailAddress 收件人邮箱
-@param string subject 邮件主题
-@param string body 邮件内容
-@param string attaches 附件内容
-@return error
-*/
-func SendGoMail(mailAddress []string, subject string, body string, attaches []string) error {
-	m := gomail.NewMessage()
-	nickname := "The Weather Forecast"
-	m.SetHeader("From", nickname+"<"+USER+">")
-	// 发送给多个用户
-	m.SetHeader("To", mailAddress...)
-	// 设置邮件主题
-	m.SetHeader("Subject", subject)
-	// 设置邮件正文
-	m.SetBody("text/html", body)
-	for _, file := range attaches {
-		_, err := os.Stat(file)
-		if err != nil {
-			fmt.Println("Error:", file, "does not exist")
-		} else {
-			fmt.Println("uploading", file, "...")
-			m.Attach(file)
-		}
-	}
-	d := gomail.NewDialer(HOST, PORT, USER, PWD)
-	// 发送邮件
-	err := d.DialAndSend(m)
-	return err
 }
