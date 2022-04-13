@@ -13,12 +13,13 @@ import (
 	"time"
 )
 
-func init() {
-	time.FixedZone("CST", 8*3600) // 东八
-}
+var to = flag.String("to", "", "to")
 
 func main() {
+	// 解析命令行中的参数
 	flag.Parse()
+	// 设置时区为东八
+	time.Local = time.FixedZone("CST", 8*3600)
 	if *to == "" {
 		fmt.Println("请传入收件人邮箱(to)")
 		return
@@ -221,8 +222,6 @@ const (
 	USER = "zg154220830@163.com" // 发送邮件用户账号
 	PWD  = "BKBGETSCDNNQTIAF"    // 授权密码
 )
-
-var to = flag.String("to", "", "to")
 
 /*
 SendGoMail 使用gomail发送邮件
