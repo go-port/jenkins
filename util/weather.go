@@ -97,18 +97,21 @@ const (
 )
 
 // GetWeather 获取天气信息
-func GetWeather() (string, error) {
-	city, err := GetCity()
-	if err != nil {
-		return "", err
-	}
-	url := "https://www.tianqiapi.com/api?appid=24242169&appsecret=fUgcxMb2&version=v9&unescape=1&city=" + city
-	println("查询天气：", url)
+func GetWeather(city string) (string, error) {
+	var err error
 	defer func() {
 		if err != nil {
 			println("查询天气失败：", err)
 		}
 	}()
+	if city == "" {
+		city, err = GetLocalCity()
+		if err != nil {
+			return "", err
+		}
+	}
+	url := "https://www.tianqiapi.com/api?appid=24242169&appsecret=fUgcxMb2&version=v9&unescape=1&city=" + city
+	println("查询天气：", url)
 	response, err := http.Get(url)
 	if err != nil {
 		return "", err

@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// GetCity 获取当前网络对应的城市
-func GetCity() (string, error) {
+// GetLocalCity 获取当前网络对应的城市
+func GetLocalCity() (string, error) {
 	response, err := http.Get("https://restapi.amap.com/v3/ip?key=3279da073706b4846e9e90abd7523c0a")
 	if err != nil {
 		return "", err
